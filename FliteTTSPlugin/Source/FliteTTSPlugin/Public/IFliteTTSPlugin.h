@@ -34,5 +34,11 @@ public:
 	{
 		return FModuleManager::Get().IsModuleLoaded( "FliteTTSPlugin" );
 	}
+
+	/** Returns list of valid voices */
+	virtual void GetVoiceNames(TArray<FName>& OutVoices) = 0;
+
+	/** Plays text with given voice */
+	virtual bool PlayVoice(FName VoiceName, const TCHAR* StringToPlay) = 0;
 };
 

@@ -186,9 +186,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="lang\cmu_indic_lang\cmu_indic_lang.c" />
+    <ClCompile Include="lang\cmu_indic_lang\cmu_indic_phoneset.c" />
+    <ClCompile Include="lang\cmu_indic_lang\cmu_indic_phrasing_cart.c" />
+    <ClCompile Include="main\word_times_main.c" />
     <ClCompile Include="src\audio\au_command.c" />
     <ClCompile Include="src\audio\au_none.c" />
     <ClCompile Include="src\audio\au_streaming.c" />
+    <ClCompile Include="src\audio\au_win.c" />
     <ClCompile Include="src\audio\au_wince.c" />
     <ClCompile Include="src\audio\auclient.c" />
     <ClCompile Include="src\audio\audio.c" />
@@ -283,6 +288,7 @@
     <None Include="windows\ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="include\flite_version.h" />
     <ClInclude Include="lang\cmulex\cmu_lex.h" />
     <ClInclude Include="lang\cmulex\cmu_lts_model.h" />
     <ClInclude Include="include\cst_alloc.h" />
@@ -303,6 +309,17 @@
     <ClInclude Include="include\cst_lts.h" />
     <ClInclude Include="include\cst_lts_rewrites.h" />
     <ClInclude Include="include\cst_math.h" />
+    <ClInclude Include="lang\cmu_indic_lang\cmu_indic_lang.h" />
+    <ClInclude Include="lang\cmu_indic_lang\cmu_indic_phrasing_cart.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_eng_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_guj_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_hin_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_kan_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_mar_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_pan_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_tam_num_table.h" />
+    <ClInclude Include="lang\cmu_indic_lang\indic_tel_num_table.h" />
     <ClInclude Include="src\cg\cst_mlpg.h" />
     <ClInclude Include="src\cg\cst_mlsa.h" />
     <ClInclude Include="include\cst_phoneset.h" />

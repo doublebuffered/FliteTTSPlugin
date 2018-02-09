@@ -5,8 +5,8 @@ namespace UnrealBuildTool.Rules
     using System.IO;
 	public class FliteTTSPlugin : ModuleRules
 	{
-		public FliteTTSPlugin(TargetInfo Target)
-		{
+		public FliteTTSPlugin(ReadOnlyTargetRules Target) : base(Target)
+        {
 			PublicIncludePaths.AddRange(
 				new string[] {
 					"FliteTTSPlugin/Private",
@@ -32,6 +32,7 @@ namespace UnrealBuildTool.Rules
 			PrivateDependencyModuleNames.AddRange(
 				new string[]
 				{
+                    "Projects"
 					// ... add private dependencies that you statically link with here ...
 				}
 				);
@@ -46,19 +47,21 @@ namespace UnrealBuildTool.Rules
 			// add Flite TTS libraries
             string BaseDirectory = Path.GetFullPath(Path.Combine(ModuleDirectory, "..", ".."));         
 			
-			if (Target.Platform == UnrealTargetPlatform.Win32)
+			if (Target.Platform == UnrealTargetPlatform.Win32 || Target.Platform == UnrealTargetPlatform.Win64)
             {
-                string FliteDirectory = Path.Combine(BaseDirectory, "ThirdParty", "flite", "lib", "Win32");
-				RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "fliteDll.dll")));
+                string PlatformString = Target.Platform == UnrealTargetPlatform.Win32 ? "Win32" : "x64";
+
+                string FliteDirectory = Path.Combine(BaseDirectory, "ThirdParty", "flite", "lib", PlatformString);
+                PublicLibraryPaths.Add(FliteDirectory);
+                PublicAdditionalLibraries.Add(Path.Combine(FliteDirectory, "fliteDll.lib"));
+                PublicAdditionalLibraries.Add(Path.Combine(FliteDirectory, "cmu_us_rms.lib"));
+                PublicAdditionalLibraries.Add(Path.Combine(FliteDirectory, "cmu_us_slt.lib"));
+                RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "fliteDll.dll")));
 				RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "cmu_us_rms.dll")));
                 RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "cmu_us_slt.dll")));
-            }
-            else if (Target.Platform == UnrealTargetPlatform.Win64)
-            {               
-                string FliteDirectory = Path.Combine(BaseDirectory, "ThirdParty", "flite", "lib", "x64");
-				RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "fliteDll.dll")));
-				RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "cmu_us_rms.dll")));
-                RuntimeDependencies.Add(new RuntimeDependency(Path.Combine(FliteDirectory, "cmu_us_slt.dll")));
+                PublicDelayLoadDLLs.Add("fliteDll.dll");
+                PublicDelayLoadDLLs.Add("cmu_us_rms.dll");
+                PublicDelayLoadDLLs.Add("cmu_us_slt.dll");
             }
 			else
 			{

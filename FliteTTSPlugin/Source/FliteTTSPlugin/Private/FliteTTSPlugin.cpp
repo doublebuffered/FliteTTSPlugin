@@ -1,24 +1,34 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
-//#include "Runtime/Projects/Public/Interfaces/IPluginManager.h"
-//#include "IPluginManager.h"
-#pragma once
 #include "FliteTTSPluginPrivatePCH.h"
-
-#include "../../../ThirdParty/flite/include/flite.h"
+#include "Interfaces/IPluginManager.h"
+#include "Containers/StringConv.h"
 
 extern "C" {
+
+	typedef cst_voice*(*FliteRegisterFunc)(const char*);
+
+	// Functions for built in voices
 	cst_voice *register_cmu_us_rms(const char *voxdir);
-	void unregister_cmu_us_rms(cst_voice *v);
 	cst_voice *register_cmu_us_slt(const char *voxdir);
-	void unregister_cmu_us_slt(cst_voice *v);
 }
 
-#pragma comment(lib, "fliteDll.lib")
-#pragma comment(lib, "cmu_us_rms.lib")
-#pragma comment(lib, "cmu_us_slt.lib")
+struct FFliteVoice
+{
+	FFliteVoice(FName InName, void* InLibrary, cst_voice* InVoice)
+		: Name(InName), Library(InLibrary), Voice(InVoice)
+	{
+	}
 
+	/** Name of the voice, derived from name in function */
+	FName Name;
 
+	/** Library loaded for this voice */
+	void* Library;
+
+	/** Actual voice data for this voice */
+	cst_voice* Voice;
+};
 
 class FFliteTTSPlugin : public IFliteTTSPlugin
 {
@@ -26,60 +36,52 @@ class FFliteTTSPlugin : public IFliteTTSPlugin
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
+	virtual void GetVoiceNames(TArray<FName>& OutVoices) override;
+	virtual bool PlayVoice(FName VoiceName, const TCHAR* StringToPlay) override;
+
 protected:
 	static void FreeDependency(void*& Handle);
 	static bool LoadDependency(const FString& Dir, const FString& Name, void*& Handle);
-	static void* LibFlite;
-	static void* LibUsRms;
-	static void* LibUsSlt;
-	static FString PluginDir;
+
+	void* LibFlite;
+	TArray<FFliteVoice> LoadedVoices;
+
+	bool RegisterVoice(cst_voice* Voice, void* Library);
+	FFliteVoice* FindVoice(FName VoiceName);
 };
 
 IMPLEMENT_MODULE( FFliteTTSPlugin, FliteTTSPlugin )
 
-//FLITETTS_DEFINE(flite_init);
-
-void* FFliteTTSPlugin::LibFlite = nullptr;
-void* FFliteTTSPlugin::LibUsRms = nullptr;
-void* FFliteTTSPlugin::LibUsSlt = nullptr;
-
 void FFliteTTSPlugin::StartupModule()
 {
 	// This code will execute after your module is loaded into memory (but after global variables are initialized, of course.)
-	const FString BaseDir = ".";// IPluginManager::Get().FindPlugin("FliteTTSPlugin")->GetBaseDir();
-	const FString FliteDir = FPaths::Combine(*BaseDir, TEXT("ThirdParty"), TEXT("flite"));
-
-	
-
+	const FString BaseDir = IPluginManager::Get().FindPlugin("FliteTTSPlugin")->GetBaseDir();
+	const FString FliteDir = FPaths::Combine(*BaseDir, TEXT("ThirdParty"), TEXT("flite"), TEXT("lib"));
 
 #if PLATFORM_64BITS
-	const FString LibDir = FPaths::Combine(*FliteDir, TEXT("Win64"));
+	const FString LibDir = FPaths::Combine(*FliteDir, TEXT("x64"));
+#else
+	const FString LibDir = FPaths::Combine(*FliteDir, TEXT("Win32"));
+#endif
 
-	if (!LoadDependency(LibDir, TEXT("fliteDll"), LibFlite) ||
-		!LoadDependency(LibDir, TEXT("cmu_us_rms"), LibUsRms) ||
-		!LoadDependency(LibDir, TEXT("cmu_us_slt"), LibUsSlt))
+	if (!LoadDependency(LibDir, TEXT("fliteDll"), LibFlite))
 	{
 		ShutdownModule();
 		return;// false;
 	}
-#else
-	const FString LibDir = FPaths::Combine(*FliteDir, TEXT("Win32"));
 
-	if (!LoadDependency(LibDir, TEXT("fliteDll"), LibFlite) ||
-		!LoadDependency(LibDir, TEXT("cmu_us_rms"), LibUsRms) ||
-		!LoadDependency(LibDir, TEXT("cmu_us_slt"), LibUsSlt))
-	{
-		ShutdownModule();
-		return;// false;
-}
-#endif
-	
 	flite_init();
-    cst_voice *v1 = register_cmu_us_rms(NULL);
-    cst_voice *v2 = register_cmu_us_slt(NULL);
-    flite_text_to_speech("FLITE is a great Talk to Speech library", v1, "play");
-	flite_text_to_speech("FLITE is a great Talk to Speech library", v2, "play");
-	
+
+	void* LoadedLibrary = nullptr;
+	if (LoadDependency(LibDir, TEXT("cmu_us_rms"), LoadedLibrary))
+	{
+		RegisterVoice(register_cmu_us_rms(nullptr), LoadedLibrary);
+	}
+
+	if (LoadDependency(LibDir, TEXT("cmu_us_slt"), LoadedLibrary))
+	{
+		RegisterVoice(register_cmu_us_slt(nullptr), LoadedLibrary);
+	}
 }
 
 
@@ -88,10 +90,15 @@ void FFliteTTSPlugin::ShutdownModule()
 	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
 	// we call this function before unloading the module.
 
-	FreeDependency(LibUsSlt);
-	FreeDependency(LibUsRms);
-	FreeDependency(LibFlite);
+	for (FFliteVoice& LoadedVoice : LoadedVoices)
+	{
+		delete_voice(LoadedVoice.Voice);
+		FreeDependency(LoadedVoice.Library);
+	}
 
+	LoadedVoices.Empty();
+
+	FreeDependency(LibFlite);
 }
 
 void FFliteTTSPlugin::FreeDependency(void*& Handle)
@@ -120,3 +127,46 @@ bool FFliteTTSPlugin::LoadDependency(const FString& Dir, const FString& Name, vo
 	return true;
 }
 
+
+bool FFliteTTSPlugin::RegisterVoice(cst_voice* Voice, void* Library)
+{
+	if (Voice && Library)
+	{
+		new(LoadedVoices) FFliteVoice(Voice->name, Library, Voice);
+		return true;
+	}
+	return false;
+}
+
+FFliteVoice* FFliteTTSPlugin::FindVoice(FName VoiceName)
+{
+	for (FFliteVoice& LoadedVoice : LoadedVoices)
+	{
+		if (LoadedVoice.Name == VoiceName)
+		{
+			return &LoadedVoice;
+		}
+	}
+	return nullptr;
+}
+
+void FFliteTTSPlugin::GetVoiceNames(TArray<FName>& OutVoices)
+{
+	for (FFliteVoice& LoadedVoice : LoadedVoices)
+	{
+		OutVoices.Add(LoadedVoice.Name);
+	}
+}
+
+bool FFliteTTSPlugin::PlayVoice(FName VoiceName, const TCHAR* StringToPlay)
+{
+	FFliteVoice* FoundVoice = FindVoice(VoiceName);
+
+	if (FoundVoice)
+	{
+		auto AnsiText = StringCast<ANSICHAR>(StringToPlay);
+
+		flite_text_to_speech(AnsiText.Get(), FoundVoice->Voice, "play");
+	}
+	return false;
+}

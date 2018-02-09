@@ -2,7 +2,7 @@
 /*                                                                       */
 /*                  Language Technologies Institute                      */
 /*                     Carnegie Mellon University                        */
-/*                      Copyright (c) 1999-2007                          */
+/*                      Copyright (c) 1999-2015                          */
 /*                        All Rights Reserved.                           */
 /*                                                                       */
 /*  Permission is hereby granted, free of charge, to use and distribute  */
@@ -64,6 +64,9 @@ cst_voice *register___VOICENAME__(const char *voxdir)
 
     /* Things that weren't filled in already. */
     flite_feat_set_string(vox->features,"name","__VOICENAME__");
+
+    /* Voice specific features from ../etc/voice.feats */
+#include "__VOICENAME___voice_feats.c"
 
     /* Lexicon */
     lex = __FLITELEX___init();
