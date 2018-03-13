@@ -43,3 +43,10 @@ EXPORTS
 	audio_stream_chunk
 	audio_streaming_info_val
 	new_audio_streaming_info
+	new_wave
+	copy_wave
+	delete_wave
+	concat_wave
+	cst_wave_resize
+	cst_wave_resample
+	cst_wave_rescale

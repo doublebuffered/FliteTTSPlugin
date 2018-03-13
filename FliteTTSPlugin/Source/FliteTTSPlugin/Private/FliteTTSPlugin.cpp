@@ -1,4 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+/*  Copyright (C) 2016 Ideoservo Games
+	Modified (C) 2018 DoubleBuffered Games
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA */
 
 #include "FliteTTSPluginPrivatePCH.h"
 #include "Interfaces/IPluginManager.h"
@@ -38,6 +54,7 @@ class FFliteTTSPlugin : public IFliteTTSPlugin
 
 	virtual void GetVoiceNames(TArray<FName>& OutVoices) override;
 	virtual bool PlayVoice(FName VoiceName, const TCHAR* StringToPlay) override;
+	virtual bool GenerateVoiceData(FName VoiceName, const TCHAR* StringToPlay, TArray<uint8>& AudioBuffer, int32& OutSampleRate, int32& OutNumChannels) override;
 
 protected:
 	static void FreeDependency(void*& Handle);
@@ -167,6 +184,35 @@ bool FFliteTTSPlugin::PlayVoice(FName VoiceName, const TCHAR* StringToPlay)
 		auto AnsiText = StringCast<ANSICHAR>(StringToPlay);
 
 		flite_text_to_speech(AnsiText.Get(), FoundVoice->Voice, "play");
+		return true;
+	}
+	return false;
+}
+
+bool FFliteTTSPlugin::GenerateVoiceData(FName VoiceName, const TCHAR* StringToPlay, TArray<uint8>& AudioBuffer, int32& OutSampleRate, int32& OutNumChannels)
+{
+	FFliteVoice* FoundVoice = FindVoice(VoiceName);
+
+	if (FoundVoice)
+	{
+		auto AnsiText = StringCast<ANSICHAR>(StringToPlay);
+
+		cst_wave* Wave = flite_text_to_wave(AnsiText.Get(), FoundVoice->Voice);
+
+		if (Wave)
+		{
+			int32 BufferSize = Wave->num_samples * sizeof(short);
+			AudioBuffer.Empty(BufferSize);
+			AudioBuffer.AddZeroed(BufferSize);
+
+			OutSampleRate = Wave->sample_rate;
+			OutNumChannels = Wave->num_channels;
+
+			FMemory::Memcpy(AudioBuffer.GetData(), Wave->samples, BufferSize);
+			delete_wave(Wave);
+			
+			return true;
+		}
 	}
 	return false;
 }

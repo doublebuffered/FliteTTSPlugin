@@ -1,4 +1,20 @@
-// Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
+/*  Copyright (C) 2016 Ideoservo Games
+	Modified (C) 2018 DoubleBuffered Games
+
+    This library is free software; you can redistribute it and/or
+    modify it under the terms of the GNU Lesser General Public
+    License as published by the Free Software Foundation; either
+    version 2.1 of the License, or (at your option) any later version.
+
+    This library is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    Lesser General Public License for more details.
+
+    You should have received a copy of the GNU Lesser General Public
+    License along with this library; if not, write to the Free Software
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
+    USA */
 
 #pragma once
 
@@ -40,5 +56,8 @@ public:
 
 	/** Plays text with given voice */
 	virtual bool PlayVoice(FName VoiceName, const TCHAR* StringToPlay) = 0;
+
+	/** Fills a buffer with 16bit PCM data for the string to play */
+	virtual bool GenerateVoiceData(FName VoiceName, const TCHAR* StringToPlay, TArray<uint8>& AudioBuffer, int32& OutSampleRate, int32& OutNumChannels) = 0;
 };
 
